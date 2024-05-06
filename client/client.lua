@@ -5,7 +5,6 @@ local SoldPeds = {}
 local npcBlip = nil
 local playerInZone = false
 local isInSpawnZone = false
-local isInZone
 local currentZone = nil
 local zoneItems = {}
 local InitiateSellProgress = false
@@ -166,23 +165,6 @@ function FollowPlayer(npcPed)
     end
 end
 
--- Check if player is in a spawn zone and create a buyer
-CreateThread(function()
-    isInZone = false -- Track if player is in a zone
-    while true do
-        
-        local zone = IsPlayerInSpawnZone()
-        if zone and not npcPed and not isInZone then
-            CreateBuyer()
-            isInZone = true
-        elseif not zone and npcPed then
-            DeleteCreatedPed()
-            isInZone = false
-        end
-        Wait(10000)
-    end
-end)
-
 -- Function to check if player is within any spawn zone
 function IsPlayerInSpawnZone()
     local playerCoords = GetEntityCoords(PlayerPedId())
@@ -195,6 +177,28 @@ function IsPlayerInSpawnZone()
     end
     return false
 end
+
+-- This should work ?????
+Citizen.CreateThread(function()
+    while true do
+        local curzone = IsPlayerInSpawnZone() -- Should return any bool
+        if curzone then
+            if not isInZone then -- checks if not bool then makes it true
+                isInZone = true
+                CreateBuyer()
+            end
+        else 
+            if isInZone then 
+                isInZone = false
+                DeleteCreatedPed()
+            end
+
+        end
+        Wait(Config.checkInterval)
+    end
+end)
+
+
 
 -- Function to get a random sell zone
 function GetRandomSellZone()
@@ -245,11 +249,6 @@ RegisterNetEvent('redux_drugsell:initiate', function(cad)
     end
 end)
 
--- Create the polygonal zone using ox_lib
-function setZone(bool)
-    print("Bools set")
-    playerInZone = bool
-end
 
 for zoneName, sellZone in pairs(Config.SellZones) do
     lib.zones.box({
